@@ -34,7 +34,23 @@
     .req-badge{color:#b00020;font-weight:600}
     .muted{color:#666;font-size:.9em}
     .pill{display:inline-block;background:#eef7f7;border:1px dashed #8cc;color:#066;padding:6px 10px;border-radius:12px;margin:6px 8px 0 0}
-    .auto-suggest { outline: 2px solid #a6e3a1; background:#f6fff6; border-radius:4px; padding:2px 6px; }
+/* Apply the green halo to both attributes and certifications */
+.attribute-item label.auto-suggest,
+.certification-item label.auto-suggest {
+  display: inline-block;            /* prevents outline clipping */
+  outline: 2px solid #a6e3a1;
+  background: #f6fff6;
+  border-radius: 4px;
+  padding: 2px 6px;
+  transition: outline-color .15s ease, background-color .15s ease;
+}
+
+/* (optional) a subtle focus effect for keyboard users */
+.attribute-item input:focus + label,
+.certification-item input:focus + label {
+  outline: 2px solid #9bd890;
+  background: #f3fff3;
+}
     .subbox{border:1px solid #d7eaea;background:#f6fbfb;border-radius:6px;padding:10px;margin-top:10px}
     .group-title{font-weight:600;margin:6px 0 4px}
   </style>
@@ -96,11 +112,11 @@
         </div>
         <div class="attribute-item" data-products="explosive-atmospheres-installation,explosive-atmospheres-equipment,power-installations">
           <input type="checkbox" id="hazardous-environment-design" value="hazardous-environment-design">
-          <label for="hazardous-environment-design">Use in explosive atmospheres (non-machinery) — ATEX product/installation rules (2014/34/EU & 60079-14).</label>
+          <label for="hazardous-environment-design">Use in explosive atmospheres (non-machinery) — Explosive Atmosphere product/installation rules (2014/34/EU & 60079-14).</label>
         </div>
         <div class="attribute-item" data-products="audio-video-equipment,video-surveillance">
           <input type="checkbox" id="wireless-connectivity" value="wireless-connectivity">
-          <label for="wireless-connectivity">Wireless HMI / Connectivity — RED (EU), GB Radio Regs, FCC.</label>
+          <label for="wireless-connectivity">Wireless HMI / Connectivity — Radio Equipment Directive (EU), GB Radio Regs, FCC.</label>
         </div>
         <div class="attribute-item" data-products="low-voltage-cables">
           <input type="checkbox" id="fire-resistant" value="fire-resistant">
@@ -118,6 +134,10 @@
           <input type="checkbox" id="safety-critical-component" value="safety-critical-component">
           <label for="safety-critical-component">Safety-critical component — expect tighter safety evidence per product standard.</label>
         </div>
+        <div class="attribute-item" data-products="machinery,video-surveillance,audio-video-equipment,medical-electrical-equipment">
+        <input type="checkbox" id="software-cyber" value="software-cyber">
+        <label for="software-cyber">Software / Cybersecurity (machinery control systems) — e.g., IEC 62443 / security hardening.</label>
+      </div>
         <!-- Machinery-only focused -->
         <div class="attribute-item" data-products="machinery">
           <input type="checkbox" id="functional-safety" value="functional-safety">
@@ -125,20 +145,37 @@
         </div>
         <div class="attribute-item" data-products="machinery">
           <input type="checkbox" id="wireless-hmi" value="wireless-hmi">
-          <label for="wireless-hmi">Wireless HMI on machine — RED/FCC as applicable.</label>
+          <label for="wireless-hmi">Wireless HMI on machine — Radio Equipment Directive/FCC as applicable.</label>
         </div>
         <div class="attribute-item" data-products="machinery">
           <input type="checkbox" id="hydraulics-pneumatics" value="hydraulics-pneumatics">
           <label for="hydraulics-pneumatics">Hydraulics / Pneumatics power — apply relevant safety parts (interlocking, guarding, pressure).</label>
         </div>
-        <div class="attribute-item" data-products="machinery">
-        <input type="checkbox" id="hazardous-location" value="hazardous-location">
-        <label for="hazardous-location">Use in potentially explosive atmospheres (machinery in zoned area) — check ATEX product/installation scope.</label>
-        </div>
-        <div class="attribute-item" data-products="machinery">
-        <input type="checkbox" id="software-cyber" value="software-cyber">
-        <label for="software-cyber">Software / Cybersecurity (machinery control systems) — e.g., IEC 62443 / security hardening.</label>
-        </div>
+<!-- Conditional Directives (EU only) -->
+<div class="attribute-item" data-products="machinery">
+  <input type="checkbox" id="emc-electrical-disturbance" value="emc-electrical-disturbance">
+  <label for="emc-electrical-disturbance">
+    Electrical equipment / Electromagnetic Compatibility — 2014/30/EU (applies if the machine contains electrical or electronic equipment that can generate or be disturbed by EM noise).
+  </label>
+</div>
+<div class="attribute-item" data-products="machinery">
+  <input type="checkbox" id="pressure-equipment" value="pressure-equipment">
+  <label for="pressure-equipment">
+    Pressure Equipment — 2014/68/EU (applies if the machine contains pressurized parts, piping, or vessels above the Pressure Equipment Directive thresholds).
+  </label>
+</div>
+<div class="attribute-item" data-products="machinery">
+  <input type="checkbox" id="hazardous-location" value="hazardous-location">
+  <label for="hazardous-location">
+    Use in potentially explosive atmospheres (ATEX) — 2014/34/EU (applies if the machine is intended for operation in a zoned area).
+  </label>
+</div>
+<div class="attribute-item" data-products="machinery">
+  <input type="checkbox" id="outdoor-use" value="outdoor-use">
+  <label for="outdoor-use">
+    Outdoor noise emission — 2000/14/EC (applies if the machine is intended for outdoor use).
+  </label>
+</div>
       </div>
     </div>
     <!-- Certifications -->
@@ -349,7 +386,6 @@ function toggleAdvancedSection(){
   document.getElementById('gb-marking-plan').style.display = anyUKSelected() ? 'block':'none';
   markRequiredFields();
 }
-document.querySelectorAll('.market-item input').forEach(cb=>cb.addEventListener('change',toggleAdvancedSection));
 
 /* ------------ Required state for operators ------------- */
 function computeOperatorRequirements(){
@@ -518,17 +554,32 @@ function baseFrameworks(product, attrs, destinations){
   const needWireless = attrs.includes('wireless-connectivity') || attrs.includes('wireless-hmi');
   const res = [];
   const add = (t,m=[])=>res.push({text:t,specificMarkets:m});
+  const hasEMC     = attrs.includes('emc-electrical-equip') || attrs.includes('wireless-hmi') || attrs.includes('wireless-connectivity');
+  const hasATEX    = attrs.includes('hazardous-location') || attrs.includes('hazardous-environment-design');
+  const hasPED     = attrs.includes('ped-pressure-parts');
+  const hasOutdoor = attrs.includes('outdoor-use');
 
   if(destinations.some(d=>MARKET_GROUP[d]==='eu')){
     const EU=['eu'];
-    const addLVD_EMC=()=>{ add('EU LVD (2014/35/EU): electrical safety (CE, EU DoC, technical file).',EU); add('EU EMC (2014/30/EU): electromagnetic compatibility (CE).',EU); };
+    const addLVD_EMC=()=>{ add('EU Low Voltage Directive (2014/35/EU): electrical safety (CE, EU DoC, technical file).',EU); add('EU Electromagnetic Compatibility (2014/30/EU): electromagnetic compatibility (CE).',EU); };
     switch(product){
-      case 'machinery':
-        add('EU Machinery Directive 2006/42/EC / transition to Machinery Regulation (EU) 2023/1230: CE; NB involvement per category.',EU);
-        add('EU EMC (2014/30/EU): applies when machinery includes electrical/electronic equipment.',EU);
-        add('Note: LVD does not apply to equipment within the scope of the Machinery regime.',EU);
-        add('Apply EN ISO 12100 risk assessment and EN 60204-1 for electrical equipment of machinery.',EU);
-        break;
+    case 'machinery':
+case 'machinery':
+  add('EU Machinery Directive 2006/42/EC / transition to Machinery Regulation (EU) 2023/1230: CE; NB involvement per category.', EU);
+  add('Note: Low Voltage Directive does not apply to equipment within the scope of the Machinery regime.', EU);
+  add('Apply EN ISO 12100 risk assessment and EN 60204-1 for electrical equipment of machinery.', EU);
+
+  // Conditional directives based on selected attributes
+  if (attrs.includes('emc-electrical-disturbance'))
+    add('EU Electromagnetic Compatibility (2014/30/EU): applies when machinery includes electrical/electronic equipment.', EU);
+  if (attrs.includes('pressure-equipment'))
+    add('EU Pressure Equipment Directive (2014/68/EU): applies where the machinery contains pressurised parts above the Pressure Equipment Directive thresholds.', EU);
+  if (attrs.includes('hazardous-location'))
+    add('EU Explosive Atmosphere Directive (2014/34/EU): applies when the machinery is intended for use in a potentially explosive atmosphere.', EU);
+  if (attrs.includes('outdoor-use'))
+    add('EU Outdoor Noise Directive (2000/14/EC): applies when the machinery is intended for outdoor use.', EU);
+  break;
+
       case 'low-voltage-switchgear':
       case 'electrical-equipment-measurement':
       case 'heat-pumps-airconditioners':
@@ -538,27 +589,31 @@ function baseFrameworks(product, attrs, destinations){
         addLVD_EMC();break;
       case 'audio-video-equipment':
       case 'video-surveillance':
-        addLVD_EMC(); if(needWireless) add('EU RED (2014/53/EU): radio spectrum + safety + EMC under RED (CE).',EU); break;
+        addLVD_EMC(); if(needWireless) add('EU Radio Equipment Directive (2014/53/EU): radio spectrum + safety + Electromagnetic Compatibility under Radio Equipment Directive (CE).',EU); break;
       case 'explosive-atmospheres-equipment':
-        add('EU ATEX Product Directive (2014/34/EU): CE; NB involvement by category/zone.',EU); break;
+        add('EU Explosive Atmosphere Product Directive (2014/34/EU): CE; NB involvement by category/zone.',EU); break;
       case 'medical-electrical-equipment':
-        add('EU MDR (2017/745): CE; EN 60601-1 safety; EN 60601-1-2 EMC; EN 62366 usability; EN ISO 14971 risk. LVD not applied.',EU); break;
+        add('EU MDR (2017/745): CE; EN 60601-1 safety; EN 60601-1-2 Electromagnetic Compatibility; EN 62366 usability; EN ISO 14971 risk. Low Voltage Directive not applied.',EU); break;
       case 'low-voltage-cables':
         add('EU CPR (305/2011) for reaction-to-fire (EN 50575): CE with Declaration of Performance (DoP).',EU); break;
       case 'photovoltaic-systems':
       case 'power-installations':
-        add('EU: installation/system standards apply; CE marking is for constituent equipment (e.g., inverters under LVD/EMC).',EU); break;
+        add('EU: installation/system standards apply; CE marking is for constituent equipment (e.g., inverters under Low Voltage Directive/Electromagnetic Compatibility).',EU); break;
       default:
         addLVD_EMC();
     }
     if(['audio-video-equipment','video-surveillance','luminaires','heat-pumps-airconditioners','commercial-refrigerating','air-cleaning-appliances','electrical-equipment-measurement','low-voltage-switchgear'].includes(product)){
       add('EU RoHS (2011/65/EU) where in EEE scope.',EU);
       add('EU WEEE (2012/19/EU) producer obligations where in scope.',EU);
+      if (hasEMC)    add('EU Electromagnetic Compatibility (2014/30/EU): electromagnetic compatibility (CE).', EU);
+  if (hasPED)    add('EU Pressure Equipment (2014/68/EU): classify, select module; CE where in scope.', EU);
+  if (hasATEX)   add('EU Explosive Atmosphere Product (2014/34/EU): equipment for potentially explosive atmospheres; CE; NB by category/zone.', EU);
+  if (hasOutdoor) add('EU Outdoor Noise (2000/14/EC): noise emission of outdoor equipment; CE where in scope.', EU);
     }
   }
   if(destinations.includes('uk')){
-    add('GB Electrical Equipment (Safety) Regulations 2016 (UK LVD analogue).',['uk']);
-    add('GB EMC Regulations 2016.',['uk']);
+    add('GB Electrical Equipment (Safety) Regulations 2016 (UK Low Voltage Directive analogue).',['uk']);
+    add('GB Electromagnetic Compatibility Regulations 2016.',['uk']);
     if(needWireless) add('GB Radio Equipment Regulations 2017.',['uk']);
     if(product==='explosive-atmospheres-equipment') add('UKEX: Equipment for Use in Potentially Explosive Atmospheres Regulations 2016.',['uk']);
     if(product==='medical-electrical-equipment') add('UK Medical Devices Regulations 2002 (as amended).',['uk']);
@@ -639,41 +694,116 @@ function certificationRequirements(certs, product, attrs, destinations){
   }
   if(certs.includes('ce-notified-body')){
     const mkts=[]; if(destinations.some(d=>MARKET_GROUP[d]==='eu')) mkts.push('eu'); if(destinations.includes('uk')) mkts.push('uk');
-    if(mkts.length) add('Third-party assessment: engage Notified Body / UK Approved Body where required (e.g., MDR, ATEX, certain modules).',mkts);
+    if(mkts.length) add('Third-party assessment: engage Notified Body / UK Approved Body where required (e.g., MDR, Explosive Atmosphere, certain modules).',mkts);
   }
   return res;
 }
 
+  function clearCertificationHints(){
+  document.querySelectorAll('.certification-item label').forEach(l => l.classList.remove('auto-suggest'));
+}
+
+function applyCertificationHints(requirements, destinations, product) {
+  clearCertificationHints();
+  const hasEU = destinations.some(d => MARKET_GROUP[d] === 'eu');
+  const hasUK = destinations.includes('uk');
+
+  // CE-based directives or regulations that require CE marking
+  const ceWords = [
+    'Machinery Directive',
+    '2014/30/EU',  // EMC
+    '2014/34/EU',  // ATEX
+    '2014/68/EU',  // Pressure Equipment
+    '2000/14/EC'   // Outdoor Noise
+  ];
+
+  const ceInReqs = (requirements || []).some(r =>
+    ceWords.some(w => (r.text || '').includes(w))
+  );
+
+  const ceBox = document.getElementById('ce-marking');
+  const ukBox = document.getElementById('ukca-ce-gb');
+
+  // --- CE MARKING (EU) ---
+  if (ceBox) {
+    const lbl = ceBox.nextElementSibling;
+    if (hasEU && (product === 'machinery' || ceInReqs)) {
+      lbl.classList.add('auto-suggest');
+      ceBox.checked = true;
+    } else {
+      lbl.classList.remove('auto-suggest');
+      ceBox.checked = false;
+    }
+  }
+
+  // --- UKCA / CE (Great Britain) ---
+  if (ukBox) {
+    const lbl = ukBox.nextElementSibling;
+    if (hasUK) {
+      lbl.classList.add('auto-suggest');
+      ukBox.checked = true;
+    } else {
+      lbl.classList.remove('auto-suggest');
+      ukBox.checked = false;
+    }
+  }
+}
+  
+// ---------- Variant change handler ----------
+function onMachVariantChange() {
+  const sel = document.getElementById('mach-variant');
+  const v = getCatalogVariant(sel?.value);
+  renderVariantDetails(v);       // draws drive-type pills
+  applyVariantAttributeHints(v); // green highlights for suggested attrs
+}
+  
 /* ------------ Wiring: product & variant changes ------------- */
 document.getElementById('product').addEventListener('change', () => {
   const product = document.getElementById('product').value;
-  updateAttributesVisibility();
 
+  // 1) Clear prior highlights
+  clearAutoSuggest();
+  clearCertificationHints();
+
+  // 2) Reset machinery-specific UI
+  const variantSel = document.getElementById('mach-variant');
+  const detailsBox = document.getElementById('variant-details');
+  if (variantSel) variantSel.innerHTML = '<option value="none">Select a Machinery variant</option>';
+  if (detailsBox) { detailsBox.innerHTML = ''; detailsBox.style.display = 'none'; }
+
+  // 3) Normal product-driven updates
+  updateAttributesVisibility();
   if (product === 'machinery') {
-    // starting fresh: clear any old highlights and details, then populate
-    resetMachineryContext();
     showMachineryBlock(true);
     populateMachineryVariants();
+
+    // NEW: if a variant is already selected (or defaulted), render its pills now
+    if (variantSel && variantSel.value !== 'none') onMachVariantChange();
   } else {
-    // leaving machinery: hide + clear everything, including highlights
     showMachineryBlock(false);
-    resetMachineryContext();
-  }
-});
-
-  document.getElementById('mach-variant').addEventListener('change', () => {
-  const sel = document.getElementById('mach-variant');
-  if (!sel || sel.value === 'none') {
-    resetMachineryContext();
-    return;
   }
 
-  const v = getCatalogVariant(sel.value);
-  renderVariantDetails(v);
-  applyVariantAttributeHints(v);   // this will re-add highlights for the new variant
+  // 4) Advanced section + CE/UKCA halos
+  toggleAdvancedSection();
+  applyCertificationHints(
+    window.currentRequirementsAll || [],
+    getSelectedDestinations(),
+    product
+  );
 });
 
-/* ------------ Generate ------------- */
+  // Destinations changed → update advanced section + CE/UKCA halos
+document.querySelectorAll('.market-item input').forEach(cb =>
+  cb.addEventListener('change', () => {
+    toggleAdvancedSection();
+    applyCertificationHints(
+      window.currentRequirementsAll || [],  // may be empty until first Generate
+      getSelectedDestinations(),
+      document.getElementById('product').value
+    );
+  })
+);
+
 function generateRoadmap(){
   const productSel = document.getElementById('product');
   const product = productSel.value;
@@ -693,7 +823,8 @@ function generateRoadmap(){
   if(r.needsUKRP && document.getElementById('ukrp-country').value==='none') return alert('Please select the UK Responsible Person country.');
 
   let requirements = [];
-  requirements.push({text:`${productSel.options[productSel.selectedIndex].text} – base EN reference captured from the selector.`,specificMarkets:[]});
+// Remove this line to avoid duplication
+// requirements.push({ text: `${productSel.options[productSel.selectedIndex].text} – base EN reference captured from the selector.`, specificMarkets: [] });
   requirements = requirements.concat(baseFrameworks(product, attrs, destinations));
   requirements = requirements.concat(variantStandards(product));
 
@@ -704,7 +835,12 @@ function generateRoadmap(){
   requirements = requirements.concat(econOperatorDuties(originSel.value, destinations, product, attrs));
   requirements = requirements.concat(certificationRequirements(certs, product, attrs, destinations));
 
-  const list = document.getElementById('roadmap-list'); list.innerHTML='';
+  window.currentRequirementsAll = requirements;             // Keep for re-use when destinations change
+  applyCertificationHints(requirements, destinations, product); // Add green halos on CE/UKCA when appropriate
+
+  // render
+  const list = document.getElementById('roadmap-list'); 
+  list.innerHTML='';
   const shown=[];
   requirements.forEach(req=>{
     const showAll = !req.specificMarkets?.length;
@@ -712,7 +848,9 @@ function generateRoadmap(){
     const showOne = req.specificMarkets?.some(m=>destinations.includes(m));
     if(showAll || showEU || showOne){
       shown.push(req);
-      const li=document.createElement('li'); li.textContent=req.text; list.appendChild(li);
+      const li=document.createElement('li'); 
+      li.textContent=req.text; 
+      list.appendChild(li);
     }
   });
 
@@ -752,7 +890,9 @@ function exportToCSV(){
   const a = document.createElement('a'); a.href=url; a.download='compliance_requirements.csv';
   document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 }
-
+    document.getElementById('mach-variant')
+  .addEventListener('change', onMachVariantChange);
+  
 /* ------------ Init ------------ */
 (async function init(){
   try { await loadCatalog(); }
@@ -762,11 +902,19 @@ function exportToCSV(){
   showMachineryBlock(false);
   toggleAdvancedSection();
 
+  // If page ships with Machinery selected, populate immediately
   const productSel = document.getElementById('product');
   if (productSel?.value === 'machinery') {
     showMachineryBlock(true);
     populateMachineryVariants();
   }
+
+  // Initial pass on load (run once, after listeners exist and UI is bootstrapped)
+  applyCertificationHints(
+    window.currentRequirementsAll || [],
+    getSelectedDestinations(),
+    document.getElementById('product').value
+  );
 })();
 </script>
 </body>
