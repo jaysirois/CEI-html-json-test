@@ -147,10 +147,14 @@
           <input type="checkbox" id="wireless-hmi" value="wireless-hmi">
           <label for="wireless-hmi">Wireless HMI on machine — Radio Equipment Directive/FCC as applicable.</label>
         </div>
-        <div class="attribute-item" data-products="machinery">
-          <input type="checkbox" id="hydraulics-pneumatics" value="hydraulics-pneumatics">
-          <label for="hydraulics-pneumatics">Hydraulics / Pneumatics power — apply relevant safety parts (interlocking, guarding, pressure).</label>
-        </div>
+<div class="attribute-item" data-products="machinery">
+  <input type="checkbox" id="hydraulic-power" value="hydraulic-power">
+  <label for="hydraulic-power">Hydraulic fluid power — EN ISO 4413 (safety for hydraulic systems).</label>
+</div>
+<div class="attribute-item" data-products="machinery">
+  <input type="checkbox" id="pneumatic-power" value="pneumatic-power">
+  <label for="pneumatic-power">Pneumatic fluid power — EN ISO 4414 (safety for pneumatic systems).</label>
+</div>
 <!-- Conditional Directives (EU only) -->
 <div class="attribute-item" data-products="machinery">
   <input type="checkbox" id="emc-electrical-disturbance" value="emc-electrical-disturbance">
@@ -178,27 +182,6 @@
 </div>
       </div>
     </div>
-    <!-- Certifications -->
-    <div class="section">
-      <h2>Certification Bodies/Goals</h2>
-      <div class="certifications-list">
-        <div class="certification-item"><input type="checkbox" id="ce-marking" value="ce-marking"><label for="ce-marking">CE Marking (EU)</label></div>
-        <div class="certification-item"><input type="checkbox" id="ukca-ce-gb" value="ukca-ce-gb"><label for="ukca-ce-gb">UKCA / CE (Great Britain)</label></div>
-        <div class="certification-item"><input type="checkbox" id="ul-listing" value="ul-listing"><label for="ul-listing">NRTL Listing (UL/CSA/ETL) – US</label></div>
-        <div class="certification-item"><input type="checkbox" id="fda-approval" value="fda-approval"><label for="fda-approval">FDA (US medical devices)</label></div>
-        <div class="certification-item"><input type="checkbox" id="ce-notified-body" value="ce-notified-body"><label for="ce-notified-body">Notified Body / UK Approved Body</label></div>
-      </div>
-
-      <div id="gb-marking-plan" style="display:none;margin-top:8px">
-        <label for="gb-plan">GB marking plan</label>
-        <select id="gb-plan">
-          <option value="ce">CE only (permitted for most sectors)</option>
-          <option value="ukca">UKCA only</option>
-          <option value="dual">Dual marking (CE + UKCA)</option>
-        </select>
-      </div>
-    </div>
-
     <!-- Origin -->
     <div class="section">
       <h2>Place of manufacture (origin)</h2>
@@ -292,7 +275,28 @@
         </div>
       </div>
     </div>
+    
+    <!-- Certifications -->
+    <div class="section">
+      <h2>Certification Bodies/Goals</h2>
+      <div class="certifications-list">
+        <div class="certification-item"><input type="checkbox" id="ce-marking" value="ce-marking"><label for="ce-marking">CE Marking (EU)</label></div>
+        <div class="certification-item"><input type="checkbox" id="ukca-ce-gb" value="ukca-ce-gb"><label for="ukca-ce-gb">UKCA / CE (Great Britain)</label></div>
+        <div class="certification-item"><input type="checkbox" id="ul-listing" value="ul-listing"><label for="ul-listing">NRTL Listing (UL/CSA/ETL) – US</label></div>
+        <div class="certification-item"><input type="checkbox" id="fda-approval" value="fda-approval"><label for="fda-approval">FDA (US medical devices)</label></div>
+        <div class="certification-item"><input type="checkbox" id="ce-notified-body" value="ce-notified-body"><label for="ce-notified-body">Notified Body / UK Approved Body</label></div>
+      </div>
 
+      <div id="gb-marking-plan" style="display:none;margin-top:8px">
+        <label for="gb-plan">GB marking plan</label>
+        <select id="gb-plan">
+          <option value="ce">CE only (permitted for most sectors)</option>
+          <option value="ukca">UKCA only</option>
+          <option value="dual">Dual marking (CE + UKCA)</option>
+        </select>
+      </div>
+    </div>
+    
     <!-- Actions -->
     <div class="section"><button onclick="generateRoadmap()">Generate Compliance Roadmap</button></div>
 
@@ -459,91 +463,115 @@ function populateMachineryVariants(){
 }
 
 // Render variant detail pills for BOTH schemas
-function renderVariantDetails(variant){
+function renderVariantDetails(variant) {
   const box = document.getElementById('variant-details');
   box.innerHTML = '';
   box.style.display = 'none';
-  if(!variant) return;
+  if (!variant) return;
 
+  // --- Base standards info ---
   const base = variant.base_standards || variant.baseStandards || [];
-  if (base.length){
+  if (base.length) {
     const info = document.createElement('div');
     info.className = 'muted';
     info.textContent = 'Variant base standards: ' + base.join(', ');
     box.appendChild(info);
   }
 
-// helper to append a pill group
-  const addGroup = (title) => {
-    box.style.display = 'block';
-    const t = document.createElement('div');
-    t.className = 'group-title';
-    t.textContent = title;
-    box.appendChild(t);
+  // --- Drive type options ---
+  if (variant.details?.driveTypes?.length) {
+    const title = document.createElement('div');
+    title.className = 'group-title';
+    title.textContent = 'Press drive type';
+    box.appendChild(title);
+
     const wrap = document.createElement('div');
     box.appendChild(wrap);
-    return wrap;
-  };
 
-    // --- Schema A: object + options.*.choices (uses data-adds) ---
-  if (variant.options && typeof variant.options === 'object') {
-    for (const [gkey, g] of Object.entries(variant.options)) {
-      const wrap = addGroup(g.label || gkey);
-      (g.choices || []).forEach(choice => {
-        const id = `${variant.id}-opt-${gkey}-${choice.id}`;
-        const pill = document.createElement('label');
-        pill.className = 'pill';
-        pill.innerHTML = `<input type="checkbox" id="${id}" data-adds="${(choice.adds||[]).join('::')}"> ${choice.label}`;
-        wrap.appendChild(pill);
-      });
-    }
+    variant.details.driveTypes.forEach(d => {
+      const pill = document.createElement('label');
+      pill.className = 'pill';
+      pill.innerHTML = `<input type="checkbox" id="${d.id}" value="${d.id}"> ${d.label}`;
+      wrap.appendChild(pill);
+    });
   }
 
-  // --- Schema B: array + details.* (uses data-std) ---
+  // --- Schema B (secondary detail sets, e.g. packaging/robot) ---
   if (variant.details && typeof variant.details === 'object') {
     const d = variant.details;
     const map = {
-      driveTypes: 'Press drive type',
       accessories: 'Lifting accessory type',
       types: 'Packaging machine type (EN 415 series)',
       families: 'Woodworking family',
       dust: 'Dust / explosion risk'
     };
     for (const [key, arr] of Object.entries(d)) {
-      if (!Array.isArray(arr) || !arr.length) continue;
-      const wrap = addGroup(map[key] || key);
+      if (!Array.isArray(arr) || !arr.length || key === 'driveTypes') continue;
+      const title = document.createElement('div');
+      title.className = 'group-title';
+      title.textContent = map[key] || key;
+      box.appendChild(title);
+
+      const wrap = document.createElement('div');
+      box.appendChild(wrap);
+
       arr.forEach(c => {
-        const id = `${variant.id}-det-${key}-${c.id}`;
         const pill = document.createElement('label');
         pill.className = 'pill';
-        pill.innerHTML = `<input type="checkbox" id="${id}" data-std="${c.standard||''}"> ${c.label}`;
+        pill.innerHTML = `<input type="checkbox" id="${variant.id}-${key}-${c.id}" data-std="${c.standard||''}"> ${c.label}`;
         wrap.appendChild(pill);
       });
     }
-    // Robots: collaborative flag (common in your details)
+
+    // Special case: robots
     if (variant.id === 'robot' && d.collaborative) {
-      const wrap = addGroup('Robot mode / application');
+      const title = document.createElement('div');
+      title.className = 'group-title';
+      title.textContent = 'Robot mode / application';
+      box.appendChild(title);
+
+      const wrap = document.createElement('div');
+      box.appendChild(wrap);
+
       const pill = document.createElement('label');
       pill.className = 'pill';
       pill.innerHTML = `<input type="checkbox" id="robot-cobot" data-std="ISO/TS 15066"> Collaborative operation (ISO/TS 15066)`;
       wrap.appendChild(pill);
     }
   }
+
+  box.style.display = 'block';
 }
-  
- // Highlight (and optionally auto-check) the variant's suggested attributes
+    
+// Highlight (and optionally auto-check) the variant's suggested attributes
 function applyVariantAttributeHints(variant, { autoCheck = false } = {}) {
-  // clear previous hints
+  // 🔹 Clear all existing highlights first
   document.querySelectorAll('.attribute-item label')
     .forEach(l => l.classList.remove('auto-suggest'));
 
-  const hints = variant?.suggestAttributes || [];
+  if (!variant) return;
+
+  // 🔹 Collect top-level suggested attributes (e.g., functional-safety)
+  let hints = Array.isArray(variant.suggestAttributes)
+    ? [...variant.suggestAttributes]
+    : [];
+
+  // 🔹 Add suggestions from all checked drive types
+  document.querySelectorAll('#variant-details input[type="checkbox"]:checked')
+    .forEach(cb => {
+      const drive = variant.details?.driveTypes?.find(d => d.id === cb.value);
+      if (drive?.suggestAttributes?.length) {
+        hints.push(...drive.suggestAttributes);
+      }
+    });
+
+  // 🔹 Apply the highlights (green outlines)
   hints.forEach(attrId => {
     const cb = document.getElementById(attrId);
     if (!cb) return;
     const lbl = cb.parentElement.querySelector('label') || cb.nextElementSibling;
     if (lbl) lbl.classList.add('auto-suggest');
-    if (autoCheck) cb.checked = true; // set to true if you want them pre-checked
+    if (autoCheck) cb.checked = true;
   });
 }
  
@@ -566,7 +594,6 @@ function baseFrameworks(product, attrs, destinations){
     case 'machinery':
 case 'machinery':
   add('EU Machinery Directive 2006/42/EC / transition to Machinery Regulation (EU) 2023/1230: CE; NB involvement per category.', EU);
-  add('Note: Low Voltage Directive does not apply to equipment within the scope of the Machinery regime.', EU);
   add('Apply EN ISO 12100 risk assessment and EN 60204-1 for electrical equipment of machinery.', EU);
 
   // Conditional directives based on selected attributes
@@ -644,14 +671,20 @@ function variantStandards(product){
   const v = getCatalogVariant(vId);
   if (!v) return out;
 
+  // --- 1. Base variant standards ---
   (v.base_standards || v.baseStandards || []).forEach(s => add(s));
 
-  // From pills: handle both data-adds and data-std
+  // --- 2. Drive-type standards (from JSON + checked boxes) ---
   document.querySelectorAll('#variant-details input[type="checkbox"]:checked').forEach(ch => {
     const adds = ch.getAttribute('data-adds');
     const std = ch.getAttribute('data-std');
+
     if (adds) adds.split('::').filter(Boolean).forEach(s => add(s));
     if (std) add(std);
+
+    // ✅ Extra check: pull standard directly from JSON if not in DOM
+    const drive = v.details?.driveTypes?.find(d => d.id === ch.value);
+    if (drive?.standard) add(drive.standard);
   });
 
   return out;
@@ -753,8 +786,18 @@ function applyCertificationHints(requirements, destinations, product) {
 function onMachVariantChange() {
   const sel = document.getElementById('mach-variant');
   const v = getCatalogVariant(sel?.value);
-  renderVariantDetails(v);       // draws drive-type pills
-  applyVariantAttributeHints(v); // green highlights for suggested attrs
+
+  // Render variant details (drive-type pills)
+  renderVariantDetails(v);
+
+  // Attach listeners for drive-type toggles (update hints live)
+  const driveBoxes = document.querySelectorAll('#variant-details input[type="checkbox"]');
+  driveBoxes.forEach(cb => {
+    cb.addEventListener('change', () => applyVariantAttributeHints(v));
+  });
+
+  // Initial highlights (e.g. functional safety)
+  applyVariantAttributeHints(v);
 }
   
 /* ------------ Wiring: product & variant changes ------------- */
@@ -777,7 +820,7 @@ document.getElementById('product').addEventListener('change', () => {
     showMachineryBlock(true);
     populateMachineryVariants();
 
-    // NEW: if a variant is already selected (or defaulted), render its pills now
+    // If a variant is already selected (or defaulted), render its pills now
     if (variantSel && variantSel.value !== 'none') onMachVariantChange();
   } else {
     showMachineryBlock(false);
@@ -804,7 +847,7 @@ document.querySelectorAll('.market-item input').forEach(cb =>
   })
 );
 
-function generateRoadmap(){
+function generateRoadmap() {
   const productSel = document.getElementById('product');
   const product = productSel.value;
   const originSel = document.getElementById('country-of-origin');
@@ -812,48 +855,55 @@ function generateRoadmap(){
   const attrs = getSelectedAttributes();
   const certs = getSelectedCertifications();
 
-  if(product==='none') return alert('Please select a product or system.');
-  if(originSel.value==='none') return alert('Please select the place of manufacture (origin).');
-  if(destinations.length===0) return alert('Please select at least one destination market.');
+  if (product === 'none') return alert('Please select a product or system.');
+  if (originSel.value === 'none') return alert('Please select the place of manufacture (origin).');
+  if (destinations.length === 0) return alert('Please select at least one destination market.');
 
   const r = computeOperatorRequirements();
-  if(r.needsEUImporter && document.getElementById('eu-importer-country').value==='none') return alert('Please select an EU importer country.');
-  if(r.needsEUAR && document.getElementById('eu-ar-country').value==='none') return alert('Please select an EU Authorized Representative country.');
-  if(r.needsGBImporter && document.getElementById('uk-importer-country').value==='none') return alert('Please select the GB importer country.');
-  if(r.needsUKRP && document.getElementById('ukrp-country').value==='none') return alert('Please select the UK Responsible Person country.');
+  if (r.needsEUImporter && document.getElementById('eu-importer-country').value === 'none') return alert('Please select an EU importer country.');
+  if (r.needsEUAR && document.getElementById('eu-ar-country').value === 'none') return alert('Please select an EU Authorized Representative country.');
+  if (r.needsGBImporter && document.getElementById('uk-importer-country').value === 'none') return alert('Please select the GB importer country.');
+  if (r.needsUKRP && document.getElementById('ukrp-country').value === 'none') return alert('Please select the UK Responsible Person country.');
 
   let requirements = [];
-// Remove this line to avoid duplication
-// requirements.push({ text: `${productSel.options[productSel.selectedIndex].text} – base EN reference captured from the selector.`, specificMarkets: [] });
-  requirements = requirements.concat(baseFrameworks(product, attrs, destinations));
-  requirements = requirements.concat(variantStandards(product));
 
-  if(destinations.includes('italy') && ['power-installations','lightning-protection','photovoltaic-systems'].includes(product)){
-    requirements.push({text:'Italy (installation): D.M. 37/2008 + CEI installation codes (e.g., CEI 64-8; CEI 0-21/0-16; CEI 11-27).',specificMarkets:['italy']});
+  // --- Standards first ---
+  requirements = requirements.concat(variantStandards(product)); // Variant type-C standards
+  requirements = requirements.concat(baseFrameworks(product, attrs, destinations)); // Base EN standards & directives
+
+  // --- Country-specific or additional rules ---
+  if (destinations.includes('italy') && ['power-installations', 'lightning-protection', 'photovoltaic-systems'].includes(product)) {
+    requirements.push({
+      text: 'Italy (installation): D.M. 37/2008 + CEI installation codes (e.g., CEI 64-8; CEI 0-21/0-16; CEI 11-27).',
+      specificMarkets: ['italy']
+    });
   }
 
+  // --- Operator & certification duties last ---
   requirements = requirements.concat(econOperatorDuties(originSel.value, destinations, product, attrs));
   requirements = requirements.concat(certificationRequirements(certs, product, attrs, destinations));
 
-  window.currentRequirementsAll = requirements;             // Keep for re-use when destinations change
-  applyCertificationHints(requirements, destinations, product); // Add green halos on CE/UKCA when appropriate
+  // --- Reuse + update CE/UKCA hints ---
+  window.currentRequirementsAll = requirements;
+  applyCertificationHints(requirements, destinations, product);
 
-  // render
-  const list = document.getElementById('roadmap-list'); 
-  list.innerHTML='';
-  const shown=[];
-  requirements.forEach(req=>{
+  // --- Render visible list ---
+  const list = document.getElementById('roadmap-list');
+  list.innerHTML = '';
+  const shown = [];
+  requirements.forEach(req => {
     const showAll = !req.specificMarkets?.length;
-    const showEU  = req.specificMarkets?.includes('eu') && destinations.some(d=>['france','germany','italy'].includes(d));
-    const showOne = req.specificMarkets?.some(m=>destinations.includes(m));
-    if(showAll || showEU || showOne){
+    const showEU = req.specificMarkets?.includes('eu') && destinations.some(d => ['france', 'germany', 'italy'].includes(d));
+    const showOne = req.specificMarkets?.some(m => destinations.includes(m));
+    if (showAll || showEU || showOne) {
       shown.push(req);
-      const li=document.createElement('li'); 
-      li.textContent=req.text; 
+      const li = document.createElement('li');
+      li.textContent = req.text;
       list.appendChild(li);
     }
   });
 
+  // --- Store details + show section ---
   window.currentRoadmapDetails = {
     product: productSel.options[productSel.selectedIndex].text,
     attributes: attrs,
@@ -863,7 +913,8 @@ function generateRoadmap(){
     requirementsAll: requirements,
     requirementsShown: shown
   };
-  document.getElementById('roadmap-section').style.display='block';
+
+  document.getElementById('roadmap-section').style.display = 'block';
 }
 
 function exportToCitation(){
@@ -894,27 +945,36 @@ function exportToCSV(){
   .addEventListener('change', onMachVariantChange);
   
 /* ------------ Init ------------ */
-(async function init(){
-  try { await loadCatalog(); }
-  catch (e) { console.error(e); alert('Could not load catalog.json — see console for details.'); return; }
+(async function init() {
+  try {
+    await loadCatalog();
+    console.log("✅ catalog.json loaded:", CATALOG);
+  } catch (e) {
+    console.error("⚠️ Could not load catalog.json — see console for details.", e);
+    alert('Could not load catalog.json — see console for details.');
+    return;
+  }
 
+  // --- 1. Initial UI setup ---
   updateAttributesVisibility();
   showMachineryBlock(false);
   toggleAdvancedSection();
 
-  // If page ships with Machinery selected, populate immediately
+  // --- 2. If Machinery is already preselected, show its variants ---
   const productSel = document.getElementById('product');
   if (productSel?.value === 'machinery') {
     showMachineryBlock(true);
     populateMachineryVariants();
   }
 
-  // Initial pass on load (run once, after listeners exist and UI is bootstrapped)
+  // --- 3. Run certification halo logic once after everything is ready ---
   applyCertificationHints(
     window.currentRequirementsAll || [],
     getSelectedDestinations(),
     document.getElementById('product').value
   );
+
+  console.log("✅ Init complete — UI ready");
 })();
 </script>
 </body>
